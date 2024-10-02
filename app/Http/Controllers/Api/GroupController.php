@@ -11,9 +11,14 @@ class GroupController extends Controller
     public function index()
     {
         // Retrieve all groups with creator information
-        $groups = Group::with(['creator'])->get(); // assuming 'creator' is defined in the Group model
+        $groups = Group::with(['creator'])->get(); // Assuming 'creator' is defined in the Group model
 
-        return response()->json($groups);
+        // Return groups in a proper JSON structure with a data key
+        return response()->json([
+            'data' => $groups,
+            'message' => 'Groups retrieved successfully',
+            'status' => 200
+        ]);
     }
 
     public function store(Request $request)
