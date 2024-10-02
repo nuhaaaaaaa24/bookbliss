@@ -40,8 +40,8 @@ class AdminController extends Controller
     // Show the admin dashboard
     public function dashboard()
     {
-        // Fetch all users
-        $users = User::all();
+        // Fetch all users with their groups
+        $users = User::with('groups')->get(); // Ensure to eager load groups
 
         // Analytics data
         $totalUsers = $users->count();
@@ -72,6 +72,7 @@ class AdminController extends Controller
 
         return view('admin.groups', compact('groups'));
     }
+
     public function showReviews()
     {
         $reviews = Review::with('user')->get();
@@ -82,6 +83,7 @@ class AdminController extends Controller
 
         return view('admin.reviews', compact('reviews', 'totalReviews', 'averageRating'));
     }
+
     public function challengesOverview()
     {
         // Retrieve challenges with the count of participants

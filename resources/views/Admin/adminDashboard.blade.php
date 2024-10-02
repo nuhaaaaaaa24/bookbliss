@@ -51,6 +51,7 @@
                     <th>Email</th>
                     <th>Bio</th>
                     <th>Genre</th>
+                    <th>Groups</th> <!-- New Groups Column -->
                 </tr>
                 </thead>
                 <tbody>
@@ -61,10 +62,12 @@
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->bio }}</td>
                         <td>{{ implode(', ', $user->genre) }}</td>
+                        <td>{{ $user->groups->pluck('name')->implode(', ') }}</td> <!-- Displaying groups -->
                     </tr>
                 @endforeach
                 </tbody>
             </table>
+
 
             <h4>Overview of users</h4>
 

@@ -5,8 +5,12 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -61,28 +65,28 @@ class UserController extends Controller
 
     public function login(Request $request)
     {
-        try {
-            $request->validate([
-                'email' => 'required|email',
-                'password' => 'required',
-            ]);
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
-            if (Auth::attempt($request->only('email', 'password'))) {
-                $user = Auth::user();
-                $token = $user->createToken('YourAppName')->plainTextToken;
-
-                return response()->json(['token' => $token], 200);
-            }
-
-            return response()->json(['error' => 'Unauthorized'], 401);
-        } catch (\Exception $e) {
-            // Log the exception if needed
-            \Log::error('Login error: ' . $e->getMessage());
-
-            // Return a generic error response
-            return response()->json(['error' => 'An error occurred during login. Please try again.'], 500);
+        // Throttle login attempts
+        if (RateLimiter::tooManyAttempts($request->ip(), 'login')) {
+            return response()->json(['error' => 'Too many login attempts. Please try again later.'], 429);
         }
+
+        if (Auth::attempt($request->only('email', 'password'))) {
+            RateLimiter::clear($request->ip()); // Clear attempts on successful login
+            $user = Auth::user();
+            $token = $user->createToken('YourAppName')->plainTextToken;
+
+            return response()->json(['token' => $token], 200);
+        }
+
+        RateLimiter::hit($request->ip()); // Increment attempts on failure
+        return response()->json(['error' => 'Unauthorized'], 401);
     }
+
 
 
     public function userProfile(Request $request)
@@ -159,5 +163,38 @@ class UserController extends Controller
             ], 500);
         }
     }
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
 
+        $status = Password::sendResetLink($request->only('email'));
+
+        return $status === Password::RESET_LINK_SENT
+            ? response()->json(['message' => 'Password reset link sent.'])
+            : response()->json(['message' => 'User not found.'], 404);
+    }
+
+
+    public function resetPassword(Request $request)
+    {
+        // Validate the request
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|confirmed|min:6',
+            'token' => 'required',
+        ]);
+
+        // Attempt to reset the password
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function ($user, $password) {
+                $user->password = Hash::make($password);
+                $user->save();
+            }
+        );
+
+        return $status === Password::PASSWORD_RESET
+            ? response()->json(['message' => __('passwords.reset')])
+            : response()->json(['message' => __('passwords.token')], 400);
+    }
 }

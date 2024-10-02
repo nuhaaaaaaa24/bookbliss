@@ -83,33 +83,30 @@ class VirtualBookshelf extends Controller
     {
         $book = Books::where('user_id', Auth::id())->findOrFail($id);
 
-        // Check if the book already exists in another category for the user
-        $existingBook = Books::where('user_id', Auth::id())
-            ->where('title', $request->input('title'))
-            ->where('status', $request->input('status'))
-            ->where('id', '!=', $id)
-            ->first();
-
-        if ($existingBook) {
-            return response()->json(['error' => 'You already have this book in the ' . $request->input('status') . ' category.'], 409);
-        }
-
+        // Validate the incoming request data to only include the status
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'author' => 'required|string|max:255',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'status' => 'required|in:want_to_buy,want_to_read,favorites',
         ]);
 
-        if ($request->hasFile('cover_image')) {
-            $coverImagePath = $request->file('cover_image')->store('covers', 'public');
-            $book->cover_image = $coverImagePath;
+        // Check if the user already has this book in the new status category
+        $existingBook = Books::where('user_id', Auth::id())
+            ->where('title', $book->title) // Use the current book's title
+            ->where('status', $validated['status'])
+            ->where('id', '!=', $id) // Exclude the current book
+            ->first();
+
+        if ($existingBook) {
+            return response()->json(['error' => 'You already have this book in the ' . $validated['status'] . ' category.'], 409);
         }
 
-        $book->update($validated);
+        // Update only the status of the book
+        $book->status = $validated['status'];
+        $book->save(); // Save the updated book model
 
         return response()->json($book);
     }
+
+
 
     public function destroy($id)
     {

@@ -17,6 +17,8 @@ Route::get('/user', function (Request $request) {
 //Users
 Route::post('/user-register', [UserController::class, 'register']);
 Route::post('/user-login', [UserController::class, 'login']);
+Route::post('/password/email', [UserController::class, 'sendResetLink']);
+Route::post('/password/reset', [UserController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user-profile', [UserController::class, 'userProfile']);
     Route::put('/user-profile', [UserController::class, 'updateProfile']);
