@@ -5,33 +5,40 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 
 class GroupController extends Controller
 {
     public function index()
     {
-        $groups = Group::withCount('users')->get();
-        // Retrieve all groups
-        return response()->json(Group::all());
+        // Retrieve all groups with creator information
+        $groups = Group::with(['creator'])->get(); // assuming 'creator' is defined in the Group model
+
+        return response()->json($groups);
     }
 
     public function store(Request $request)
     {
-        // Validate and create a new group
+        // Validate and create a new group with custom error messages
         $request->validate([
             'name' => 'required|string|max:255|unique:groups,name',
             'description' => 'nullable|string|max:1000', // description is optional
+        ], [
+            'name.unique' => 'Group name already exists. Choose another one.', // Custom error message
         ]);
 
+        // Create the group
         $group = Group::create([
             'name' => $request->name,
             'description' => $request->description ?? 'No description provided', // Default value
             'creator_id' => auth()->id(),
         ]);
 
-        return response()->json($group, 201);
+        return response()->json($group->load('creator'), 201); // Load creator details
     }
+
+
+
+
     public function joinGroup(Request $request, $id)
     {
         // Validate the request
@@ -58,13 +65,10 @@ class GroupController extends Controller
         ], 200);
     }
 
-
-
-
     public function show($id)
     {
-        // Retrieve a specific group by ID
-        $group = Group::findOrFail($id);
+        // Retrieve a specific group by ID with creator information
+        $group = Group::with('creator')->findOrFail($id);
         return response()->json($group);
     }
 

@@ -20,6 +20,17 @@ class ChallengeController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
+        // Check if the challenge with the same title exists for this user
+        $existingChallenge = Challenge::where('user_id', $validated['user_id'])
+            ->where('title', $validated['title'])
+            ->first();
+
+        if ($existingChallenge) {
+            return response()->json([
+                'message' => 'Challenge with this title already exists for the user. Please use a different title.'
+            ], 400);
+        }
+
         $challenge = Challenge::create($validated);
 
         return response()->json([
@@ -27,6 +38,7 @@ class ChallengeController extends Controller
             'challenge' => $challenge
         ], 201);
     }
+
 
     // Join a challenge
     public function joinChallenge(Request $request, $challengeId)
@@ -37,6 +49,16 @@ class ChallengeController extends Controller
 
         $challenge = Challenge::findOrFail($challengeId);
 
+        // Check if the user is already part of the challenge
+        $existingParticipant = $challenge->participants()->where('user_id', $validated['user_id'])->first();
+
+        if ($existingParticipant) {
+            return response()->json([
+                'message' => 'User has already joined this challenge.'
+            ], 400); // 400 Bad Request
+        }
+
+        // Attach the user to the challenge if not already joined
         $challenge->participants()->attach($validated['user_id'], ['status' => 'ongoing', 'progress' => 0]);
 
         return response()->json([
@@ -44,6 +66,7 @@ class ChallengeController extends Controller
             'challenge' => $challenge
         ], 200);
     }
+
 
     // Get user's progress in a challenge
     public function userProgress($challengeId, $userId)

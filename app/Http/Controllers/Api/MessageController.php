@@ -26,7 +26,9 @@ class MessageController extends Controller
 
     public function index(Group $group)
     {
-        $messages = $group->messages()->with('user')->get();
+        // Retrieve messages along with the user who sent each message
+        $messages = $group->messages()->with('user:id,name')->get(); // Adjust 'id' and 'name' as per your User model
+
         return response()->json($messages);
     }
 }

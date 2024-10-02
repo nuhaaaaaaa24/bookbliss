@@ -86,6 +86,10 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Challenge::class, 'challenge_user')->withPivot('status', 'progress')->withTimestamps();
     }
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
     /**
      * Accessor for bio attribute.
      *
